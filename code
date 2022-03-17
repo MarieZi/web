@@ -51,22 +51,15 @@ def start():
                     </html>'''
 
 
-def t(s):
-    print(8)
-    return f'''<!doctype html>
-                    <html lang="en">
-                      <body>
-                        <p>{s}</p>
-                      </body>
-                    </html>'''
+flag = False
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        a = str(form.username).split('=')[-1][1:-2]
-        p = str(form.password).split('=')[-1][1:-2]
+        a = form.username.data
+        p = form.password.data
         d = 0
         for y in a:
             if y.isalpha() or y in '1234567890':
@@ -74,7 +67,7 @@ def login():
         s = 0
         if d < len(a) or ' ' in a:
             s = 'Имя пользователя должно состоять только из букв и цифр'
-        if len(p) < 8:
+        if len(p) < 8 and s == 0:
             s = 'Длина пароля не может быть меньше 8 символов'
         g = 0
         h = 0
@@ -95,6 +88,8 @@ def login():
         if s != 0:
             form.s = s
             return render_template('login.html', title='соцсеть.рф', form=form)
+        else:
+            form.s = ''
         return redirect('/')
     return render_template('login.html', title='соцсеть.рф', form=form)
 
