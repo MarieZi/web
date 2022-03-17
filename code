@@ -10,7 +10,7 @@ from flask import request
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
-con = sqlite3.connect(r"C:\Users\user\Downloads\base.sqlite")
+con = sqlite3.connect("base.sqlite", check_same_thread=False)
 cur = con.cursor()
 
 
@@ -53,6 +53,25 @@ def start():
                         </div>
                       </body>
                     </html>'''
+
+
+@app.route('/in')
+def hi():
+    return '''<!doctype html>
+                        <html lang="en">
+                          <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+                            <link rel="stylesheet" 
+                            href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" 
+                            integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" 
+                            crossorigin="anonymous">
+                            <title>соцсеть.рф</title>
+                          </head>
+                          <body>
+                            <h1 align=center>Вы успешно вошли в аккаунт</h1>
+                          </body>
+                        </html>'''
 
 
 flag = False
@@ -102,13 +121,13 @@ def login():
                 result2[u] = result2[u][0]
             dr = 0
             if a in result and p in result2:
-                if result.index(a) == result2.index(p):
+                if p == result2[result.index(a)]:
                     dr = 1
             if dr == 0:
                 s = 'Неправильно введён логин или пароль.'
                 form.s = s
                 return render_template('login.html', title='соцсеть.рф', form=form)
-        return redirect('/')
+        return redirect('/in')
     return render_template('login.html', title='соцсеть.рф', form=form)
 
 
@@ -155,8 +174,8 @@ def registration():
                 s = 'Это имя пользователя уже занято.'
                 form.s = s
                 return render_template('registration.html', title='соцсеть.рф', form=form)
-            cur.execute("""INSERT INTO main(name, password) VALUES(a, p)""")
-        return redirect('/')
+            cur.execute("""INSERT INTO main(name, password) VALUES(?, ?)""", (a, p))
+        return redirect('/in')
     return render_template('registration.html', title='соцсеть.рф', form=form)
 
 
