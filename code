@@ -26,6 +26,7 @@ class RegistrationForm(FlaskForm):
     username = StringField('Придумайте логин', validators=[DataRequired()])
     password = PasswordField('Придумайте пароль', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
+    s = ''
 
 
 @app.route('/')
