@@ -3,11 +3,15 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
 from flask import Flask
 from flask import redirect, render_template
+import sqlite3
 from flask import url_for
 from flask import request
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+
+con = sqlite3.connect(r"C:\Users\user\Downloads\base.sqlite")
+cur = con.cursor()
 
 
 class LoginForm(FlaskForm):
@@ -90,6 +94,20 @@ def login():
             return render_template('login.html', title='соцсеть.рф', form=form)
         else:
             form.s = ''
+            result = cur.execute("""SELECT name FROM main""").fetchall()
+            result2 = cur.execute("""SELECT password FROM main""").fetchall()
+            for e in range(len(result)):
+                result[e] = result[e][0]
+            for u in range(len(result2)):
+                result2[u] = result2[u][0]
+            dr = 0
+            if a in result and p in result2:
+                if result.index(a) == result2.index(p):
+                    dr = 1
+            if dr == 0:
+                s = 'Неправильно введён логин или пароль.'
+                form.s = s
+                return render_template('login.html', title='соцсеть.рф', form=form)
         return redirect('/')
     return render_template('login.html', title='соцсеть.рф', form=form)
 
@@ -98,6 +116,46 @@ def login():
 def registration():
     form = RegistrationForm()
     if form.validate_on_submit():
+        a = form.username.data
+        p = form.password.data
+        d = 0
+        for y in a:
+            if y.isalpha() or y in '1234567890':
+                d += 1
+        s = 0
+        if d < len(a) or ' ' in a:
+            s = 'Имя пользователя должно состоять только из букв и цифр'
+        if len(p) < 8 and s == 0:
+            s = 'Длина пароля не может быть меньше 8 символов'
+        g = 0
+        h = 0
+        o = 0
+        for i in p:
+            if i.islower():
+                g = 1
+            if i.isupper():
+                o = 1
+            if i in '0123456789':
+                h = 1
+        if g == 0 and s == 0:
+            s = 'В пароле должны присутствовать маленькие буквы'
+        if o == 0 and s == 0:
+            s = 'В пароле должны присутствовать заглавные буквы'
+        if h == 0 and s == 0:
+            s = 'В пароле должны присутствовать цифры'
+        if s != 0:
+            form.s = s
+            return render_template('registration.html', title='соцсеть.рф', form=form)
+        else:
+            form.s = ''
+            result = cur.execute("""SELECT name FROM main""").fetchall()
+            for e in range(len(result)):
+                result[e] = result[e][0]
+            if a in result:
+                s = 'Это имя пользователя уже занято.'
+                form.s = s
+                return render_template('registration.html', title='соцсеть.рф', form=form)
+            cur.execute("""INSERT INTO main(name, password) VALUES(a, p)""")
         return redirect('/')
     return render_template('registration.html', title='соцсеть.рф', form=form)
 
