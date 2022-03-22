@@ -3,15 +3,59 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
 from flask import Flask
 from flask import redirect, render_template
-import sqlite3
+import datetime
 from flask import url_for
 from flask import request
+import sqlalchemy as sa
+import sqlalchemy.orm as orm
+from sqlalchemy.orm import Session
+import sqlalchemy.ext.declarative as dec
+
+SqlAlchemyBase = dec.declarative_base()
+
+__factory = None
+
+
+class User(SqlAlchemyBase):
+    __tablename__ = 'users'
+    name = sa.Column(sa.String, primary_key=True, unique=True, nullable=True)
+    # about = sa.Column(sa.String, nullable=True)
+    email = sa.Column(sa.String, index=True, unique=True, nullable=True)
+    hashed_password = sa.Column(sa.String, nullable=True)
+    created_date = sa.Column(sa.DateTime, default=datetime.datetime.now)
+
+
+user = User()
+
+
+def global_init(db_file):
+    global __factory
+
+    if __factory:
+        return
+
+    if not db_file or not db_file.strip():
+        raise Exception("Необходимо указать файл базы данных.")
+
+    conn_str = f'sqlite:///{db_file.strip()}?check_same_thread=False'
+    print(f"Подключение к базе данных по адресу {conn_str}")
+
+    engine = sa.create_engine(conn_str, echo=False)
+    __factory = orm.sessionmaker(bind=engine)
+
+    SqlAlchemyBase.metadata.create_all(engine)
+
+
+def create_session() -> Session:
+    global __factory
+    return __factory()
+
+
+global_init("users.db")
+table = create_session()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
-
-con = sqlite3.connect("base.sqlite", check_same_thread=False)
-cur = con.cursor()
 
 
 class LoginForm(FlaskForm):
@@ -114,12 +158,11 @@ def login():
             return render_template('login.html', title='соцсеть.рф', form=form)
         else:
             form.s = ''
-            result = cur.execute("""SELECT name FROM main""").fetchall()
-            result2 = cur.execute("""SELECT password FROM main""").fetchall()
-            for e in range(len(result)):
-                result[e] = result[e][0]
-            for u in range(len(result2)):
-                result2[u] = result2[u][0]
+            result = []
+            result2 = []
+            for us in table.query(User).all():
+                result.append(us.name)
+                result2.append(us.hashed_password)
             dr = 0
             if a in result and p in result2:
                 if p == result2[result.index(a)]:
@@ -168,14 +211,18 @@ def registration():
             return render_template('registration.html', title='соцсеть.рф', form=form)
         else:
             form.s = ''
-            result = cur.execute("""SELECT name FROM main""").fetchall()
-            for e in range(len(result)):
-                result[e] = result[e][0]
+            result = []
+            for us in table.query(User).all():
+                result.append(us.name)
             if a in result:
                 s = 'Это имя пользователя уже занято.'
                 form.s = s
                 return render_template('registration.html', title='соцсеть.рф', form=form)
-            cur.execute("""INSERT INTO main(name, password) VALUES(?, ?)""", (a, p))
+            user.name = a
+            user.hashed_password = p
+            user.created_date = datetime.datetime.now()
+            table.add(user)
+            table.commit()
         return redirect('/in')
     return render_template('registration.html', title='соцсеть.рф', form=form)
 
