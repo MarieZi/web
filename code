@@ -10,6 +10,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 from sqlalchemy.orm import Session
 import sqlalchemy.ext.declarative as dec
+from werkzeug.security import generate_password_hash, check_password_hash
 
 SqlAlchemyBase = dec.declarative_base()
 
@@ -23,6 +24,12 @@ class User(SqlAlchemyBase):
     email = sa.Column(sa.String, index=True, unique=True, nullable=True)
     hashed_password = sa.Column(sa.String, nullable=True)
     created_date = sa.Column(sa.DateTime, default=datetime.datetime.now)
+
+    def set_password(self, password):
+        self.hashed_password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.hashed_password, password)
 
 
 user = User()
@@ -67,8 +74,10 @@ class LoginForm(FlaskForm):
 
 
 class RegistrationForm(FlaskForm):
-    username = StringField('Придумайте логин', validators=[DataRequired()])
+    name = StringField('Придумайте логин', validators=[DataRequired()])
+    email = StringField('Введите электронную почту', validators=[DataRequired()])
     password = PasswordField('Придумайте пароль', validators=[DataRequired()])
+    password_again = PasswordField('Повторите пароль', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
     s = ''
 
@@ -179,15 +188,27 @@ def login():
 def registration():
     form = RegistrationForm()
     if form.validate_on_submit():
-        a = form.username.data
+        a = form.name.data
         p = form.password.data
+        p2 = form.password_again.data
+        e = form.email.data
+        s = 0
+        if '@' in e:
+            if '.' in e.split('@')[1]:
+                if not e.split('@')[1].split('.')[1] in ['ru', 'com'] and len(e.split('@')[1].split('.')[0]) > 1:
+                    s = 'Некорректно введена почта'
+            else:
+                s = 'Некорректно введена почта'
+        else:
+            s = 'Некорректно введена почта'
         d = 0
         for y in a:
             if y.isalpha() or y in '1234567890':
                 d += 1
-        s = 0
-        if d < len(a) or ' ' in a:
+        if (d < len(a) or ' ' in a) and s == 0:
             s = 'Имя пользователя должно состоять только из букв и цифр'
+        if p != p2 and s == 0:
+            s = 'Введённые пароли не совпадают'
         if len(p) < 8 and s == 0:
             s = 'Длина пароля не может быть меньше 8 символов'
         g = 0
@@ -219,7 +240,8 @@ def registration():
                 form.s = s
                 return render_template('registration.html', title='соцсеть.рф', form=form)
             user.name = a
-            user.hashed_password = p
+            user.email = e
+            user.set_password(form.password.data)
             user.created_date = datetime.datetime.now()
             table.add(user)
             table.commit()
