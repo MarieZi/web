@@ -1,0 +1,32 @@
+<div class="panel">
+        {% load tz %}
+        {% if chats.count == 0 %}
+            <div class="panel panel-body">{% trans "Нет ни одного начатого диалога" %}</div>
+        {% endif %}
+        {% for chat in chats %}
+            {% if chat.message\_set.count != 0 %}
+                {% with last\_message=chat.message\_set.last %}
+                    {% get\_companion user chat as companion %}
+                    <a class="list-group-item {% if companion == last\_message.author and not last\_message.is\_readed %}unreaded{% endif %}" href="{{ chat.get\_absolute\_url }}">
+                        <img class="avatar-messages" src="{{ companion.userprofile.get\_avatar }}">
+                        <div class="reply-body">
+                            <ul class="list-inline">
+                                <li class="drop-left-padding">
+                                    <strong class="list-group-item-heading">{{ companion.username }}</strong>
+                                </li>
+                                <li class="pull-right text-muted"><small>{{ last\_message.pub\_date|utc }}</small></li>
+                            </ul>
+                            {% if companion != last\_message.author %}
+                                <div>
+                                    <img class="avatar-rounded-sm" src="{{ last\_message.author.userprofile.get\_avatar }}">
+                                    <div class="attached-reply-body {% if not last\_message.is\_readed %}unreaded{% endif %}">{{ last\_message.message|truncatechars\_html:"200"|safe|striptags }}</div>
+                                </div>
+                            {% else %}
+                                <div>{{ last\_message.message|truncatechars\_html:"200"|safe|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+    </div>
